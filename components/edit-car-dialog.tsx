@@ -34,7 +34,7 @@ type EditCarDialogProps = {
         model: string;
         regNumber: string;
         year: number;
-        vin?: string;
+        vin?: string | null;
         purchasePrice: number | string;
         purchaseDate?: string | Date;
     };

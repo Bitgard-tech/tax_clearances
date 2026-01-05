@@ -9,9 +9,10 @@ const createVehicleSchema = z.object({
     model: z.string().min(1, "Model is required"),
     year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),
     regNumber: z.string().min(1, "Registration number is required"),
-    vin: z.string().optional(),
+    vin: z.string().nullable().optional().transform(val => val || null),
     purchasePrice: z.coerce.number().positive("Price must be positive"),
     purchaseDate: z.coerce.date(),
+    profitMargin: z.coerce.number().min(0).max(100).optional().default(15),
     images: z.array(z.string()).default([]),
 });
 
@@ -25,7 +26,7 @@ const markSoldSchema = z.object({
     soldDate: z.coerce.date(),
 });
 
-export async function createVehicle(data: z.infer<typeof createVehicleSchema>) {
+export async function createVehicle(data: z.input<typeof createVehicleSchema>) {
     const result = createVehicleSchema.safeParse(data);
     if (!result.success) {
         return { success: false, message: result.error.issues[0].message };
@@ -55,7 +56,7 @@ export async function createVehicle(data: z.infer<typeof createVehicleSchema>) {
     }
 }
 
-export async function updateVehicle(data: z.infer<typeof updateVehicleSchema>) {
+export async function updateVehicle(data: z.input<typeof updateVehicleSchema>) {
     const result = updateVehicleSchema.safeParse(data);
     if (!result.success) {
         return { success: false, message: result.error.issues[0].message };
@@ -147,9 +148,20 @@ const getCachedVehicles = unstable_cache(
 
 export async function getVehicles() {
     try {
-        const vehicles = await getCachedVehicles();
+        const rawVehicles = await getCachedVehicles();
+        const vehicles = rawVehicles.map(vehicle => ({
+            ...vehicle,
+            purchasePrice: Number(vehicle.purchasePrice),
+            soldPrice: vehicle.soldPrice ? Number(vehicle.soldPrice) : null,
+            profitMargin: Number(vehicle.profitMargin),
+            expenses: vehicle.expenses.map(expense => ({
+                ...expense,
+                amount: Number(expense.amount)
+            }))
+        }));
         return { success: true, data: vehicles };
-    } catch {
+    } catch (error) {
+        console.error("Get vehicles error:", error);
         return { success: false, message: "Failed to fetch vehicles." };
     }
 }
@@ -160,8 +172,21 @@ export async function getVehicleById(id: string) {
             where: { id },
             include: { expenses: true },
         });
+
         if (!vehicle) return { success: false, message: "Vehicle not found." };
-        return { success: true, data: vehicle };
+
+        const serializedVehicle = {
+            ...vehicle,
+            purchasePrice: Number(vehicle.purchasePrice),
+            soldPrice: vehicle.soldPrice ? Number(vehicle.soldPrice) : null,
+            profitMargin: Number(vehicle.profitMargin),
+            expenses: vehicle.expenses.map(expense => ({
+                ...expense,
+                amount: Number(expense.amount)
+            }))
+        };
+
+        return { success: true, data: serializedVehicle };
     } catch {
         return { success: false, message: "Failed to fetch vehicle." };
     }

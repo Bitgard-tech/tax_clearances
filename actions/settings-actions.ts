@@ -35,7 +35,7 @@ export async function updateDealerProfile(data: z.infer<typeof dealerProfileSche
     const result = dealerProfileSchema.safeParse(data);
 
     if (!result.success) {
-        return { success: false, message: "Invalid data." };
+        return { success: false, message: "Invalid data: " + result.error.issues[0].message };
     }
 
     try {

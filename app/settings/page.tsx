@@ -2,6 +2,7 @@
 import { getDealerProfile } from "@/actions/settings-actions";
 import { SettingsForm } from "@/components/settings-form";
 
+export const dynamic = 'force-dynamic';
 export default async function SettingsPage() {
     const result = await getDealerProfile();
     const profile = result.success && result.data ? result.data : null;

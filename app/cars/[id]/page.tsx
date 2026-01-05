@@ -7,28 +7,28 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, DollarSign, Receipt, Calculator, CheckCircle, Wrench, CalendarDays } from "lucide-react";
 import { getVehicleById } from "@/actions/vehicle-actions";
-import { getDealerProfile } from "@/actions/settings-actions"; // Import added
 import { formatCurrency } from "@/utils/format";
 import { AddExpenseDialog } from "@/components/add-expense-dialog";
 import { SellCarDialog } from "@/components/sell-car-dialog";
 import { DownloadCertificateButton } from "@/components/download-certificate-button";
+import { EditExpenseDialog } from "@/components/edit-expense-dialog";
+import { DeleteExpenseDialog } from "@/components/delete-expense-dialog";
+import { EditMarginDialog } from "@/components/edit-margin-dialog";
+
+export const dynamic = 'force-dynamic';
 
 export default async function VehicleDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
-    // Parallel fetching for performance
-    const [vehicleResult, profileResult] = await Promise.all([
-        getVehicleById(id),
-        getDealerProfile()
-    ]);
+    // Single fetch since profit margin is now on vehicle
+    const vehicleResult = await getVehicleById(id);
 
     if (!vehicleResult.success || !vehicleResult.data) {
         notFound();
     }
 
     const vehicle = vehicleResult.data;
-    const dealerProfile = profileResult.success ? profileResult.data : null;
-    const companyName = dealerProfile?.companyName || "AutoTrust Pro";
+    const companyName = "AutoTrust Pro"; // Fallback or fetch from settings if needed elsewhere
 
     const totalExpenses = vehicle.expenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
     const breakEvenCost = Number(vehicle.purchasePrice) + totalExpenses;
@@ -148,9 +148,12 @@ export default async function VehicleDetailsPage({ params }: { params: Promise<{
                         </CardHeader>
                         <CardContent className="pb-3 sm:pb-4">
                             <div className="text-lg sm:text-2xl font-bold text-muted-foreground">
-                                {formatCurrency(breakEvenCost * 1.15)}
+                                {formatCurrency(breakEvenCost * (1 + ((vehicle.profitMargin || 15) / 100)))}
                             </div>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground">15% margin</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <p className="text-[10px] sm:text-xs text-muted-foreground">{vehicle.profitMargin || 15}% margin</p>
+                                <EditMarginDialog vehicleId={vehicle.id} currentMargin={vehicle.profitMargin || 15} />
+                            </div>
                         </CardContent>
                     </Card>
                 )}
@@ -203,9 +206,21 @@ export default async function VehicleDetailsPage({ params }: { params: Promise<{
                                             </div>
                                             <div className="text-right shrink-0 ml-2">
                                                 <p className="font-bold text-sm">{formatCurrency(expense.amount)}</p>
-                                                <Badge variant="secondary" className="text-[10px] mt-0.5">
-                                                    {expense.category.replace('_', ' ')}
-                                                </Badge>
+                                                <div className="flex items-center justify-end gap-1 mt-1">
+                                                    <Badge variant="secondary" className="text-[10px]">
+                                                        {expense.category.replace('_', ' ')}
+                                                    </Badge>
+                                                    <div className="flex items-center">
+                                                        <EditExpenseDialog expense={{
+                                                            ...expense,
+                                                            amount: Number(expense.amount)
+                                                        }} />
+                                                        <DeleteExpenseDialog
+                                                            expenseId={expense.id}
+                                                            vehicleId={vehicle.id}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

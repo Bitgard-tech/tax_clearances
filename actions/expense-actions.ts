@@ -46,3 +46,56 @@ export async function addExpense(data: z.infer<typeof expenseSchema>) {
         return { success: false, message: "Failed to add expense." };
     }
 }
+
+const updateExpenseSchema = expenseSchema.omit({ vehicleId: true }).extend({
+    id: z.string().uuid(),
+    vehicleId: z.string().uuid(), // Keep vehicleId for revalidation
+});
+
+export async function updateExpense(data: z.infer<typeof updateExpenseSchema>) {
+    const result = updateExpenseSchema.safeParse(data);
+    if (!result.success) {
+        return { success: false, message: result.error.issues[0].message };
+    }
+
+    try {
+        let isPublic = result.data.isPublic;
+        if (isPublic === undefined) {
+            // Retain existing logic or default based on category if needed, 
+            // but here we trust the form data or existing value passed.
+            // For simplicity in update, we might want to ensure isPublic is sent from the form.
+            isPublic = result.data.category === 'REPAIR';
+        }
+
+        await db.expense.update({
+            where: { id: result.data.id },
+            data: {
+                description: result.data.description,
+                amount: result.data.amount,
+                date: result.data.date,
+                category: result.data.category,
+                isPublic: isPublic,
+            },
+        });
+
+        revalidatePath(`/cars/${result.data.vehicleId}`);
+        return { success: true, message: "Expense updated successfully." };
+    } catch (error) {
+        console.error("Update expense error:", error);
+        return { success: false, message: "Failed to update expense." };
+    }
+}
+
+export async function deleteExpense(id: string, vehicleId: string) {
+    try {
+        await db.expense.delete({
+            where: { id },
+        });
+
+        revalidatePath(`/cars/${vehicleId}`);
+        return { success: true, message: "Expense deleted successfully." };
+    } catch (error) {
+        console.error("Delete expense error:", error);
+        return { success: false, message: "Failed to delete expense." };
+    }
+}

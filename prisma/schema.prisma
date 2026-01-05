@@ -27,15 +27,17 @@ model Vehicle {
   make          String
   model         String
   year          Int
-  purchasePrice Decimal
-  purchaseDate  DateTime
   status        VehicleStatus @default(AVAILABLE)
 
+  purchasePrice Decimal
+  purchaseDate  DateTime
   soldPrice     Decimal?
   soldDate      DateTime?
+  
+  profitMargin  Decimal   @default(15.0)
 
   images        String[]
-
+  
   createdAt     DateTime  @default(now())
 
   expenses      Expense[]

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Car, LayoutDashboard, Package, FileText, Shield, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSwipeable } from "react-swipeable";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
     { href: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -136,6 +137,8 @@ export function AppNav({ children, companyName = "AutoTrust Pro" }: { children: 
                             <Settings className="h-5 w-5" />
                             <span className="sr-only">Settings</span>
                         </Link>
+
+                        <ThemeToggle />
                     </nav>
                 </header>
 

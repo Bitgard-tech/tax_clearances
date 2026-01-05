@@ -34,7 +34,7 @@ export function AddCarDialog() {
             model: formData.get("model") as string,
             year: parseInt(formData.get("year") as string),
             regNumber: formData.get("regNumber") as string,
-            vin: formData.get("vin") as string || undefined,
+            vin: formData.get("vin") as string || null,
             purchasePrice: parseFloat(formData.get("purchasePrice") as string),
             purchaseDate: new Date(formData.get("purchaseDate") as string),
             images: [],
